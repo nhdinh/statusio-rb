@@ -38,10 +38,6 @@ describe StatusioClient do
 		describe '#component_list' do
 			let (:response) { return statusioclient.component_list statuspage_id }
 
-			before do
-				VCR.insert_cassette 'component_list_cassette', :record => :new_episodes
-			end
-
 			it 'should not never an error return, the message should be ok' do
 				response.should_not be nil
 				response['status']['error'].should eq 'no'
@@ -58,10 +54,6 @@ describe StatusioClient do
 				actual_response.code.should eq 200
 
 				response.should eq JSON.parse(actual_response.body)
-			end
-
-			after do
-				VCR.eject_cassette
 			end
 		end
 
@@ -85,6 +77,75 @@ describe StatusioClient do
 				update_response['result'].should eq true
 
 				# TODO: Fix server-side: The result always return true even if @component_id and @container_id are wrong
+			end
+		end
+	end
+
+	#   INCIDENT
+	describe 'Test incident method' do
+		# Test incident_list
+		describe '#incident_list' do
+			let (:response) { statusioclient.incident_list statuspage_id }
+
+			it 'should never return an error' do
+				response.should_not be nil
+				response['status']['error'].should eq 'no'
+				response['status']['message'].should eq 'OK'
+
+				response['result']['active_incidents'].should be_an_instance_of Array
+				response['result']['resolved_incidents'].should be_an_instance_of Array
+			end
+
+			it 'should be equal with the actual result that get with httparty' do
+				actual_response = HTTParty.get(api_url + 'incident/list/' + statuspage_id, :headers => api_headers)
+				actual_response.code.should eq 200
+
+				response.should eq JSON.parse(actual_response.body)
+			end
+		end
+
+		# Test incident_create
+		describe '#incident_create' do
+			let (:components) { [mock_components[0]] }
+			let (:containers) { [components[0]['containers'][0]] }
+			let (:payload) { {
+				'statuspage_id' => statuspage_id,
+				'components' => [components[0]['_id']],
+				'containers' => [containers[0]['_id']],
+				'incident_name' => 'Database errors',
+				'incident_details' => 'Investigating database connection issue',
+				'notify_email' => 0,
+				'notify_sms' => 1,
+				'notify_webhook' => 0,
+				'social' => 0,
+				'irc' => 0,
+				'hipchat' => 0,
+				'slack' => 0,
+				'current_status' => StatusioClient::STATUS_PARTIAL_SERVICE_DISRUPTION,
+				'current_state' => StatusioClient::STATE_INVESTIGATING,
+				'all_infrastructure_affected' => '0'
+			} }
+
+			it 'should receive @data as parameter and should return an incident_id' do
+				notifications = 0
+				notifications += StatusioClient::NOTIFY_EMAIL if payload['notify_email'] != 0
+				notifications += StatusioClient::NOTIFY_SMS if payload['notify_sms'] != 0
+				notifications += StatusioClient::NOTIFY_WEBHOOK if payload['notify_webhook'] != 0
+
+				response = statusioclient.incident_create statuspage_id,
+				                                          payload['incident_name'],
+				                                          payload['incident_details'],
+				                                          payload['components'],
+				                                          payload['containers'],
+				                                          payload['current_status'],
+				                                          payload['current_state'],
+				                                          notifications,
+				                                          payload['all_infrastructure_affected']
+
+				response['status']['error'].should eq 'no'
+				response['status']['message'].should eq 'OK'
+				response['result'].should_not eq ''
+				response['result'].length.should eq 24
 			end
 		end
 	end

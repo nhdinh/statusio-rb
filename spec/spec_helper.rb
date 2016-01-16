@@ -19,25 +19,6 @@
 
 #dependencies
 require 'rspec'
-require 'vcr'
-require 'turn'
-
-Turn.config do |c|
-	# :outline  - turn's original case/test outline mode [default]
-	c.format = :outline
-	# turn on invoke/execute tracing, enable full backtrace
-	c.trace = true
-	# use humanized test names (works only with :outline format)
-	c.natural = true
-end
-
-#VCR config
-VCR.configure { |c|
-	c.cassette_library_dir = 'spec/fixtures/'
-	c.hook_into :webmock
-	c.allow_http_connections_when_no_cassette = true
-}
-
 
 RSpec.configure do |config|
 	# rspec-expectations config goes here. You can use an alternate
