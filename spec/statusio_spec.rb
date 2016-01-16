@@ -83,6 +83,35 @@ describe StatusioClient do
 
 	#   INCIDENT
 	describe 'Test incident method' do
+		let (:components) { [mock_components[0]] }
+		let (:containers) { [components[0]['containers'][0]] }
+		let (:payload) { {
+			'statuspage_id' => statuspage_id,
+			'components' => [components[0]['_id']],
+			'containers' => [containers[0]['_id']],
+			'incident_name' => 'Database errors',
+			'incident_details' => 'Investigating database connection issue',
+			'notify_email' => 0,
+			'notify_sms' => 1,
+			'notify_webhook' => 0,
+			'social' => 0,
+			'irc' => 0,
+			'hipchat' => 0,
+			'slack' => 0,
+			'current_status' => StatusioClient::STATUS_PARTIAL_SERVICE_DISRUPTION,
+			'current_state' => StatusioClient::STATE_INVESTIGATING,
+			'all_infrastructure_affected' => '0'
+		} }
+
+		let (:notifications) {
+			notifications = 0
+			notifications += StatusioClient::NOTIFY_EMAIL if payload['notify_email'] != 0
+			notifications += StatusioClient::NOTIFY_SMS if payload['notify_sms'] != 0
+			notifications += StatusioClient::NOTIFY_WEBHOOK if payload['notify_webhook'] != 0
+
+			return notifications
+		}
+
 		# Test incident_list
 		describe '#incident_list' do
 			let (:response) { statusioclient.incident_list statuspage_id }
@@ -106,46 +135,57 @@ describe StatusioClient do
 
 		# Test incident_create
 		describe '#incident_create' do
-			let (:components) { [mock_components[0]] }
-			let (:containers) { [components[0]['containers'][0]] }
-			let (:payload) { {
-				'statuspage_id' => statuspage_id,
-				'components' => [components[0]['_id']],
-				'containers' => [containers[0]['_id']],
-				'incident_name' => 'Database errors',
-				'incident_details' => 'Investigating database connection issue',
-				'notify_email' => 0,
-				'notify_sms' => 1,
-				'notify_webhook' => 0,
-				'social' => 0,
-				'irc' => 0,
-				'hipchat' => 0,
-				'slack' => 0,
-				'current_status' => StatusioClient::STATUS_PARTIAL_SERVICE_DISRUPTION,
-				'current_state' => StatusioClient::STATE_INVESTIGATING,
-				'all_infrastructure_affected' => '0'
-			} }
+			let (:response) {
+				statusioclient.incident_create statuspage_id,
+				                               payload['incident_name'],
+				                               payload['incident_details'],
+				                               payload['components'],
+				                               payload['containers'],
+				                               payload['current_status'],
+				                               payload['current_state'],
+				                               notifications,
+				                               payload['all_infrastructure_affected']
+			}
 
-			it 'should receive @data as parameter and should return an incident_id' do
-				notifications = 0
-				notifications += StatusioClient::NOTIFY_EMAIL if payload['notify_email'] != 0
-				notifications += StatusioClient::NOTIFY_SMS if payload['notify_sms'] != 0
-				notifications += StatusioClient::NOTIFY_WEBHOOK if payload['notify_webhook'] != 0
+			it 'should not be nil' do
+				response.should_not eq nil
+			end
 
-				response = statusioclient.incident_create statuspage_id,
-				                                          payload['incident_name'],
-				                                          payload['incident_details'],
-				                                          payload['components'],
-				                                          payload['containers'],
-				                                          payload['current_status'],
-				                                          payload['current_state'],
-				                                          notifications,
-				                                          payload['all_infrastructure_affected']
-
+			it 'should return successfully' do
 				response['status']['error'].should eq 'no'
 				response['status']['message'].should eq 'OK'
+			end
+
+			it 'should return with incident_id' do
 				response['result'].should_not eq ''
 				response['result'].length.should eq 24
+			end
+		end
+
+		# Test incident_delete
+		describe '#incident_delete' do
+			let (:incident_list_response) { statusioclient.incident_list statuspage_id }
+			let (:incidents) {
+				_incidents = {}
+				_incidents['active'] = incident_list_response['result']['active_incidents']
+				_incidents['resolved'] = incident_list_response['result']['resolved_incidents']
+				return _incidents
+			}
+
+			it 'should delete all the incidents and return true' do
+				incidents.each_value do |igroup|
+					if igroup.class == Array and igroup.length != 0
+						igroup.each_index do |k|
+							@incident_id = igroup[k]['_id']
+
+							response = statusioclient.incident_delete statuspage_id, @incident_id
+
+							response['status']['error'].should eq 'no'
+							response['status']['message'].should eq 'Successfully deleted incident'
+							response['result'].should eq true
+						end
+					end
+				end
 			end
 		end
 	end
