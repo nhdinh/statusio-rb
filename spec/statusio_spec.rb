@@ -227,5 +227,69 @@ describe StatusioClient do
 				statusioclient.incident_delete statuspage_id, @incident_id
 			end
 		end
+
+		# Test incident_update
+		describe '#incident_update' do
+			let (:create_incident_response) {
+				statusioclient.incident_create statuspage_id,
+				                               payload['incident_name'],
+				                               payload['incident_details'],
+				                               payload['components'],
+				                               payload['containers'],
+				                               payload['current_status'],
+				                               payload['current_state'],
+				                               notifications,
+				                               payload['all_infrastructure_affected']
+			}
+
+			let (:incident_id) { create_incident_response['result'] }
+
+			it 'should receive parameters and update the incident without any error returned' do
+				incident_details = 'Incident fixed'
+				current_status = StatusioClient::STATUS_OPERATIONAL
+				current_state = StatusioClient::STATE_MONITORING
+				response = statusioclient.incident_update statuspage_id, incident_id, incident_details, current_status, current_state, StatusioClient::NOTIFY_SMS
+
+				response['status']['error'].should eq 'no'
+				response['status']['message'].should eq 'OK'
+				response['result'].should eq true
+			end
+
+			after :each do
+				statusioclient.incident_delete statuspage_id, incident_id
+			end
+		end
+
+		# Test incident_resolve
+		describe '#incident_resolve' do
+			let (:create_incident_response) {
+				statusioclient.incident_create statuspage_id,
+				                               payload['incident_name'],
+				                               payload['incident_details'],
+				                               payload['components'],
+				                               payload['containers'],
+				                               payload['current_status'],
+				                               payload['current_state'],
+				                               notifications,
+				                               payload['all_infrastructure_affected']
+			}
+
+			let (:incident_id) { create_incident_response['result'] }
+
+			it 'should receive parameters and resolve the incident without any error returned' do
+				incident_details = 'Incident resolved'
+				current_status = StatusioClient::STATUS_OPERATIONAL
+				current_state = StatusioClient::STATE_MONITORING
+				response = statusioclient.incident_resolve statuspage_id, incident_id, incident_details, current_status, current_state, StatusioClient::NOTIFY_SMS
+
+				response['status']['error'].should eq 'no'
+				response['status']['message'].should eq 'OK'
+				response['result'].should eq true
+			end
+
+			after :each do
+				statusioclient.incident_delete statuspage_id, incident_id
+			end
+		end
 	end
 end
