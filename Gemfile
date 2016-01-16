@@ -9,7 +9,6 @@ group :test do
 	gem 'turn'
 	gem 'rake'
 	gem 'ansi'
-	gem 'win32console'
 	gem 'httparty'
 end
 
