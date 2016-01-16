@@ -47,10 +47,10 @@ describe StatusioClient do
 				response['status']['error'].should eq 'no'
 				response['status']['message'].should eq 'OK'
 
-				#@response['result'].length.should eq mock_components.length
-				#@response['result'].each_with_index do |component, key|
-				#	component['containers'].length.should eq mock_components[key]['containers'].length
-				#end
+				response['result'].length.should eq mock_components.length
+				response['result'].each_with_index do |component, key|
+					component['containers'].length.should eq mock_components[key]['containers'].length
+				end
 			end
 
 			it 'should be equal with the actual result that get with httparty' do
