@@ -33,8 +33,8 @@ describe StatusioClient do
 		statusioclient.should be_an_instance_of StatusioClient
 	end
 
-	# Test component_list
-	describe 'Testing components method' do
+	#   COMPONENT
+	describe 'Testing components methods' do
 		describe '#component_list' do
 			let (:response) { return statusioclient.component_list statuspage_id }
 
@@ -82,7 +82,7 @@ describe StatusioClient do
 	end
 
 	#   INCIDENT
-	describe 'Test incident method' do
+	describe 'Test incident methods' do
 		let (:components) { [mock_components[0]] }
 		let (:containers) { [components[0]['containers'][0]] }
 		let (:payload) { {
@@ -223,7 +223,7 @@ describe StatusioClient do
 				response.should eq actual_response_body
 			end
 
-			after :each do
+			after do
 				statusioclient.incident_delete statuspage_id, @incident_id
 			end
 		end
@@ -255,7 +255,7 @@ describe StatusioClient do
 				response['result'].should eq true
 			end
 
-			after :each do
+			after do
 				statusioclient.incident_delete statuspage_id, incident_id
 			end
 		end
@@ -287,15 +287,14 @@ describe StatusioClient do
 				response['result'].should eq true
 			end
 
-			after :each do
+			after do
 				statusioclient.incident_delete statuspage_id, incident_id
 			end
 		end
 	end
 
 	# MAINTENANCE
-
-	describe 'Maintenance' do
+	describe 'Test maintenance methods' do
 		let (:components) { [mock_components[0]] }
 		let (:containers) { [components[0]['containers'][0]] }
 
@@ -432,7 +431,7 @@ describe StatusioClient do
 				response['result'].should eq true
 			end
 
-			after :each do
+			after do
 				statusioclient.maintenance_delete statuspage_id, maintenance_id
 			end
 		end
@@ -476,7 +475,7 @@ describe StatusioClient do
 				response['result'].should eq true
 			end
 
-			after :each do
+			after do
 				statusioclient.maintenance_delete statuspage_id, maintenance_id
 			end
 		end
@@ -528,9 +527,155 @@ describe StatusioClient do
 				maintenance_message_response.should eq JSON.parse(actual_response.body)
 			end
 
-			after :each do
+			after do
 				statusioclient.maintenance_delete statuspage_id, maintenance_id
 			end
 		end
+
+		# Test maintenance_update
+		describe '#maintenance_update' do
+			let (:maintenance_id) {
+				maintenance_schedule_response = statusioclient.maintenance_schedule statuspage_id,
+				                                                                    payload['maintenance_name'],
+				                                                                    payload['maintenance_details'],
+				                                                                    payload['components'],
+				                                                                    payload['containers'],
+				                                                                    payload['date_planned_start'],
+				                                                                    payload['time_planned_start'],
+				                                                                    payload['date_planned_end'],
+				                                                                    payload['time_planned_end'],
+				                                                                    payload['automation'],
+				                                                                    payload['all_infrastructure_affected'],
+				                                                                    payload['maintenance_notify_now'],
+				                                                                    payload['maintenance_notify_1_hr'],
+				                                                                    payload['maintenance_notify_24_hr'],
+				                                                                    payload['maintenance_notify_72_hr']
+
+				return maintenance_schedule_response['result']
+			}
+
+			let (:maintenance_update_response) {
+				statusioclient.maintenance_update statuspage_id,
+				                                  maintenance_id,
+				                                  'This maintenance details should be updated.',
+				                                  StatusioClient::NOTIFY_EMAIL
+			}
+
+			it 'should receive parameters and update the maintenance without any error returned' do
+				maintenance_update_response['status']['error'].should eq 'no'
+				maintenance_update_response['status']['message'].should eq 'OK'
+				maintenance_update_response['result'].should eq true
+			end
+
+			after do
+				statusioclient.maintenance_delete statuspage_id, maintenance_id
+			end
+		end
+	end
+
+	# SUBSCRIBER
+	describe 'Test subscriber methods' do
+		let (:email_to_register) { 'hung.dnc@gmail.com' }
+		let (:another_email) { 'hungdn@live.com' }
+		let (:payload) { {
+			'method' => 'email',
+			'address' => email_to_register,
+			'granular' => mock_components[0]['_id'] + '_' + mock_components[0]['containers'][0]['_id']
+		} }
+
+		# Test subscriber_list
+		describe '#subscriber_list' do
+			let (:subscriber_list_response) { statusioclient.subscriber_list statuspage_id }
+
+			it 'should return list of subscriber with no error' do
+				subscriber_list_response['status']['error'].should eq 'no'
+				subscriber_list_response['status']['message'].should eq 'OK'
+			end
+
+			it 'should have the same result with actual get with httparty' do
+				actual_response = HTTParty.get api_url + 'subscriber/list/' + statuspage_id, :headers => api_headers
+				subscriber_list_response.should eq JSON.parse(actual_response.body)
+			end
+		end
+
+		let (:subscribers) {
+			subscribers = {}
+			count = 0
+			subscriber_list_response = statusioclient.subscriber_list statuspage_id
+			subscriber_list_response['result'].each_key do |subg_key|
+				subscriber_list_response['result'][subg_key].each do |s|
+					subscribers[count] = s['_id']
+					count = count + 1
+				end
+			end
+
+			return subscribers
+		}
+
+		describe '#subscriber_remove' do
+			it 'should delete all subscriber' do
+				subscribers.each_key do |key|
+					subscriber_remove_response = statusioclient.subscriber_remove statuspage_id, subscribers[key]
+
+					subscriber_remove_response['status']['error'].should eq 'no'
+					subscriber_remove_response['status']['message'].should eq 'Successfully deleted subscriber'
+				end
+			end
+		end
+
+		# Test subscriber_add
+		describe '#subscriber_add' do
+			let (:subscriber_add_response) {
+				statusioclient.subscriber_add statuspage_id,
+				                              payload['method'],
+				                              payload['address'],
+				                              0,
+				                              payload['granular']
+			}
+
+			it 'should create subscriber and return no error' do
+				subscriber_add_response['status']['error'].should eq 'no'
+				subscriber_add_response['status']['message'].should eq 'OK'
+				subscriber_add_response['result'].should eq true
+				subscriber_add_response['subscriber_id'].length.should eq 24
+			end
+
+			after do
+				statusioclient.subscriber_remove statuspage_id, subscriber_add_response['subscriber_id']
+			end
+		end
+
+		describe '#subscriber_' do
+			#let (:subscriber_update_with_same_email_response) {statusioclient.subscriber_update statuspage_id, subscriber_id, email, payload['granular']}
+			let (:subscriber_update_response) { statusioclient.subscriber_update statuspage_id, subscriber_id, another_email, payload['granular'] }
+
+			it 'should return successful' do
+				subscriber_update_response['status']['error'].should eq 'no'
+			end
+		end
+
+=begin
+	describe 'afdsfsd' do
+		before :each do
+			response = statusioclient.subscriber_list statuspage_id
+			@subscribers = {}
+		end
+
+		it 'should update the subscriber with new information and return no error' do
+			new_email = 'hungdn@live.com'
+
+			response = statusioclient.subscriber_update statuspage_id, @@subscriber_id, new_email, @data['granular']
+			response['status']['error'].should eq 'no'
+		end
+
+		it 'should delete the created subscriber and return no error' do
+			response = statusioclient.subscriber_remove statuspage_id, @@subscriber_id
+
+			response['status']['error'].should eq 'no'
+			response['status']['message'].should eq 'Successfully deleted subscriber'
+			response['result'].should eq true
+		end
+	end
+=end
 	end
 end
