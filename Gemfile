@@ -6,10 +6,8 @@ gem 'rest-client'
 
 group :test do
 	gem 'rspec'
-	gem 'webmock'
 	gem 'rake'
 	gem 'win32console' if (RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/)
-	gem 'ansi'
 	gem 'httparty'
 end
 
