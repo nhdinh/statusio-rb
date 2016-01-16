@@ -177,7 +177,6 @@ describe StatusioClient do
 					if igroup.class == Array and igroup.length != 0
 						igroup.each_index do |k|
 							@incident_id = igroup[k]['_id']
-
 							response = statusioclient.incident_delete statuspage_id, @incident_id
 
 							response['status']['error'].should eq 'no'
@@ -186,6 +185,46 @@ describe StatusioClient do
 						end
 					end
 				end
+			end
+		end
+
+		# Test incident_message
+		describe '#incident_message' do
+			let (:create_incident_response) {
+				statusioclient.incident_create statuspage_id,
+				                               payload['incident_name'],
+				                               payload['incident_details'],
+				                               payload['components'],
+				                               payload['containers'],
+				                               payload['current_status'],
+				                               payload['current_state'],
+				                               notifications,
+				                               payload['all_infrastructure_affected']
+			}
+
+			let (:incident_id) { create_incident_response['result'] }
+			let (:incident_list_response) { statusioclient.incident_list statuspage_id }
+
+			# get default message_ids
+			let (:message_id) { incident_list_response['result']['active_incidents'][0]['messages'][0]['_id'] }
+
+			it '@message_id that recently created must be available and wel-formed' do
+				message_id.should_not eq ''
+				message_id.length.should eq 24
+			end
+
+			it 'should receive statuspage_id and @message_id as parameters and the result should be eq the result of httparty' do
+				response = statusioclient.incident_message statuspage_id, message_id
+				actual_response = HTTParty.get(api_url + 'incident/message/' + statuspage_id + '/' + message_id, :headers => api_headers)
+				actual_response_body = JSON.parse(actual_response.body)
+
+				actual_response.code.should eq 200
+				actual_response_body['status']['message'].should eq 'Get incident message success'
+				response.should eq actual_response_body
+			end
+
+			after :each do
+				statusioclient.incident_delete statuspage_id, @incident_id
 			end
 		end
 	end
