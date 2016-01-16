@@ -292,4 +292,245 @@ describe StatusioClient do
 			end
 		end
 	end
+
+	# MAINTENANCE
+
+	describe 'Maintenance' do
+		let (:components) { [mock_components[0]] }
+		let (:containers) { [components[0]['containers'][0]] }
+
+		let (:start_datetime) { Time.now + 60*60*24 }
+		let (:end_datetime) { Time.now + 60*60*24 + 60*30 }
+
+		let (:payload) { {
+			'maintenance_name' => 'Power source maintenance',
+			'maintenance_details' => 'Power source maintenance for all the datacenters',
+			'components' => [components[0]['_id']],
+			'containers' => [containers[0]['_id']],
+			'date_planned_start' => start_datetime.strftime('%m/%d/%Y'),
+			'time_planned_start' => start_datetime.strftime('%H:%M'),
+			'date_planned_end' => end_datetime.strftime('%m/%d/%Y'),
+			'time_planned_end' => end_datetime.strftime('%H:%M'),
+			'automation' => '0',
+			'all_infrastructure_affected' => '0',
+			'maintenance_notify_now' => '0',
+			'maintenance_notify_1_hr' => '0',
+			'maintenance_notify_24_hr' => '0',
+			'maintenance_notify_72_hr' => '0'
+		} }
+
+
+		# Test maintenance_list
+		describe '#maintenance_list' do
+			let (:response) { statusioclient.maintenance_list statuspage_id }
+
+			it 'should never return an error' do
+				response.should_not be nil
+				response['status']['error'].should eq 'no'
+				response['status']['message'].should eq 'OK'
+
+				response['result']['active_maintenances'].should be_an_instance_of Array
+				response['result']['upcoming_maintenances'].should be_an_instance_of Array
+				response['result']['resolved_maintenances'].should be_an_instance_of Array
+			end
+
+			it 'should be equal with the actual result that get with httparty' do
+				actual_response = HTTParty.get(api_url + 'maintenance/list/' + statuspage_id, :headers => api_headers)
+				actual_response.code.should eq 200
+
+				response.should eq JSON.parse(actual_response.body)
+			end
+		end
+
+		# Test maintenance_schedule
+		describe '#maintenance_schedule' do
+			let (:schedule_maintenance_response) {
+				statusioclient.maintenance_schedule statuspage_id,
+				                                    payload['maintenance_name'],
+				                                    payload['maintenance_details'],
+				                                    payload['components'],
+				                                    payload['containers'],
+				                                    payload['date_planned_start'],
+				                                    payload['time_planned_start'],
+				                                    payload['date_planned_end'],
+				                                    payload['time_planned_end'],
+				                                    payload['automation'],
+				                                    payload['all_infrastructure_affected'],
+				                                    payload['maintenance_notify_now'],
+				                                    payload['maintenance_notify_1_hr'],
+				                                    payload['maintenance_notify_24_hr'],
+				                                    payload['maintenance_notify_72_hr']
+			}
+
+			it 'should receive @data as parameter and should return an incident_id' do
+				schedule_maintenance_response['status']['error'].should eq 'no'
+				schedule_maintenance_response['status']['message'].should eq 'OK'
+				schedule_maintenance_response['result'].should_not eq ''
+				schedule_maintenance_response['result'].length.should eq 24
+			end
+		end
+
+		# Test maintenance_delete
+		describe '#maintenance_delete' do
+			let (:maintenance_list_response) { statusioclient.maintenance_list statuspage_id }
+			let (:maintenances) {
+				_maintenances = {}
+				_maintenances['active'] = maintenance_list_response['result']['active_maintenances']
+				_maintenances['upcoming'] = maintenance_list_response['result']['upcoming_maintenances']
+				_maintenances['resolved'] = maintenance_list_response['result']['resolved_maintenances']
+
+				return _maintenances
+			}
+
+			it 'should delete all the maintenances and return true' do
+				maintenances.each_value do |mgroup|
+					if mgroup.class == Array and mgroup.length != 0
+						mgroup.each_index do |k|
+							maintenance_id = mgroup[k]['_id']
+
+							response = statusioclient.maintenance_delete statuspage_id, maintenance_id
+
+							response['status']['error'].should eq 'no'
+							response['status']['message'].should eq 'Successfully deleted maintenance'
+							response['result'].should eq true
+						end
+					end
+				end
+			end
+		end
+
+		# Test maintenance_start
+		describe '#maintenance_start' do
+			let (:schedule_maintenance_response) {
+				statusioclient.maintenance_schedule statuspage_id,
+				                                    payload['maintenance_name'],
+				                                    payload['maintenance_details'],
+				                                    payload['components'],
+				                                    payload['containers'],
+				                                    payload['date_planned_start'],
+				                                    payload['time_planned_start'],
+				                                    payload['date_planned_end'],
+				                                    payload['time_planned_end'],
+				                                    payload['automation'],
+				                                    payload['all_infrastructure_affected'],
+				                                    payload['maintenance_notify_now'],
+				                                    payload['maintenance_notify_1_hr'],
+				                                    payload['maintenance_notify_24_hr'],
+				                                    payload['maintenance_notify_72_hr']
+			}
+
+			let (:maintenance_id) { schedule_maintenance_response['result'] }
+
+			it 'should receive @maintenance_id and return no error' do
+				response = statusioclient.maintenance_start statuspage_id,
+				                                            maintenance_id,
+				                                            payload['maintenance_name'] + ' : started ' + Time.now.strftime('%d/%m/%Y %H:%M'),
+				                                            StatusioClient::NOTIFY_EMAIL
+
+				response['status']['error'].should eq 'no'
+				response['status']['message'].should eq 'OK'
+				response['result'].should eq true
+			end
+
+			after :each do
+				statusioclient.maintenance_delete statuspage_id, maintenance_id
+			end
+		end
+
+		# Test maintenance_finish
+		describe '#maintenance_finish' do
+			let (:schedule_maintenance_response) {
+				statusioclient.maintenance_schedule statuspage_id,
+				                                    payload['maintenance_name'],
+				                                    payload['maintenance_details'],
+				                                    payload['components'],
+				                                    payload['containers'],
+				                                    payload['date_planned_start'],
+				                                    payload['time_planned_start'],
+				                                    payload['date_planned_end'],
+				                                    payload['time_planned_end'],
+				                                    payload['automation'],
+				                                    payload['all_infrastructure_affected'],
+				                                    payload['maintenance_notify_now'],
+				                                    payload['maintenance_notify_1_hr'],
+				                                    payload['maintenance_notify_24_hr'],
+				                                    payload['maintenance_notify_72_hr']
+			}
+
+			let (:maintenance_id) { schedule_maintenance_response['result'] }
+			let (:start_maintenance_response) {
+				statusioclient.maintenance_start statuspage_id,
+				                                 maintenance_id,
+				                                 payload['maintenance_name'] + ' : started ' + Time.now.strftime('%d/%m/%Y %H:%M'),
+				                                 StatusioClient::NOTIFY_EMAIL
+			}
+
+			it 'should receive parameters and return no error' do
+				response = statusioclient.maintenance_finish statuspage_id,
+				                                             maintenance_id,
+				                                             'Maintenance finished ' + Time.now.strftime('%d/%m/%Y %H:%M'),
+				                                             StatusioClient::NOTIFY_EMAIL
+
+				response['status']['error'].should eq 'no'
+				response['status']['message'].should eq 'OK'
+				response['result'].should eq true
+			end
+
+			after :each do
+				statusioclient.maintenance_delete statuspage_id, maintenance_id
+			end
+		end
+
+		# Test maintenance_message
+		describe '#maintenance_message' do
+			let (:message_id) {
+				maintenance_schedule_response = statusioclient.maintenance_schedule statuspage_id,
+				                                                                    payload['maintenance_name'],
+				                                                                    payload['maintenance_details'],
+				                                                                    payload['components'],
+				                                                                    payload['containers'],
+				                                                                    payload['date_planned_start'],
+				                                                                    payload['time_planned_start'],
+				                                                                    payload['date_planned_end'],
+				                                                                    payload['time_planned_end'],
+				                                                                    payload['automation'],
+				                                                                    payload['all_infrastructure_affected'],
+				                                                                    payload['maintenance_notify_now'],
+				                                                                    payload['maintenance_notify_1_hr'],
+				                                                                    payload['maintenance_notify_24_hr'],
+				                                                                    payload['maintenance_notify_72_hr']
+
+				maintenance_id = maintenance_schedule_response['result']
+
+				maintenance_list_response = statusioclient.maintenance_list statuspage_id
+				upcoming_maintenances = maintenance_list_response['result']['upcoming_maintenances']
+
+				m_id = 0
+				upcoming_maintenances.each do |i|
+					if i['_id'] == maintenance_id
+						m_id = i['messages'][0]['_id']
+					end
+				end
+
+				return m_id
+			}
+
+			let (:maintenance_message_response) { statusioclient.maintenance_message statuspage_id, message_id }
+
+
+			it 'should return no error and right message' do
+				maintenance_message_response['status']['error'].should eq 'no'
+				maintenance_message_response['status']['message'].should eq 'Get maintenance message success'
+			end
+
+			it 'should be same with httparty result' do
+				actual_response = HTTParty.get api_url + 'maintenance/message/' + statuspage_id + '/' + message_id, :headers => api_headers
+				maintenance_message_response.should eq JSON.parse(actual_response.body)
+			end
+
+			after :each do
+				statusioclient.maintenance_delete statuspage_id, maintenance_id
+			end
+		end
+	end
 end
