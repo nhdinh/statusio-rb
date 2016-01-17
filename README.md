@@ -1,15 +1,15 @@
 # Statusio::Rb
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/statusio/rb`. To experiment with that code, run `bin/console` for an interactive prompt.
+Ruby library wrapper for Status.io
 
-TODO: Delete this and the text above, and describe your gem
+Ruby library wrapper for Status.io - A Complete Status Platform - Status pages, incident tracking, subscriber notifications and more
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'statusio-rb'
+gem 'statusio'
 ```
 
 And then execute:
@@ -18,11 +18,24 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install statusio-rb
+    $ gem install statusio
 
 ## Usage
 
-TODO: Write usage instructions here
+```ruby
+# Sign up an account and get your api_id, api_key from developer tab
+statusioclient = StatusioClient.new(api_key, api_id)
+```
+
+To work with component method
+
+To work with maintenance methods
+
+To work with subscriber methods
+
+To work with metric methods
+
+Please refer to Status.io API v2 for more details.
 
 ## Development
 
