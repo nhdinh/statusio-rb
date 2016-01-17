@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email = ['hung.dnc@gmail.com']
 
   spec.summary = 'Ruby library wrapper for Status.io'
-  spec.description = 'Ruby library wrapper for Status.io'
+  spec.description = 'Ruby library wrapper for Status.io - A Complete Status Platform - Status pages, incident tracking, subscriber notifications and more'
   spec.homepage = 'http://status.io'
 
 =begin

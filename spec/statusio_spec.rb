@@ -692,4 +692,71 @@ describe StatusioClient do
 	end
 =end
 	end
+
+	# STATUS
+	describe 'Test status method' do
+		describe '#status_summary' do
+			let (:response) { return statusioclient.status_summary statuspage_id }
+
+			it 'should not never an error return, the message should be ok' do
+				response.should_not be nil
+				response['status']['error'].should eq 'no'
+				response['status']['message'].should eq 'Get public api status successfully'
+			end
+
+			it 'should be equal with the actual result that get with httparty' do
+				actual_response = HTTParty.get(api_url + 'status/summary/' + statuspage_id, :headers => api_headers)
+				actual_response.code.should eq 200
+
+				response.should eq JSON.parse(actual_response.body)
+			end
+		end
+	end
+
+	# METRICS
+	describe 'Test metric method' do
+		# my created metric id
+		let (:metric_id) { '569af1df5bcc7dd35a000444' }
+
+		# another data from api example
+		let (:day_avg) { '22.58' }
+		let (:day_start) { '1395981878000' }
+		let (:day_dates) { %q['2014-03-28T05:43:00+00:00', '2014-03-28T06:43:00+00:00', '2014-03-28T07:43:00+00:00', '2014-03-28T08:43:00+00:00', '2014-03-28T09:43:00+00:00', '2014-03-28T10:43:00+00:00', '2014-03-28T11:43:00+00:00', '2014-03-28T12:43:00+00:00', '2014-03-28T13:43:00+00:00', '2014-03-28T14:43:00+00:00', '2014-03-28T15:43:00+00:00', '2014-03-28T16:43:00+00:00', '2014-03-28T17:43:00+00:00', '2014-03-28T18:43:00+00:00', '2014-03-28T19:43:00+00:00', '2014-03-28T20:43:00+00:00', '2014-03-28T21:43:00+00:00', '2014-03-28T22:43:00+00:00', '2014-03-28T23:43:00+00:00', '2014-03-29T00:43:00+00:00', '2014-03-29T01:43:00+00:00', '2014-03-29T02:43:00+00:00', '2014-03-29T03:43:00+00:00'] }
+		let (:day_values) { %q['20.70', '20.00', '19.20', '19.80', '19.90', '20.10', '21.40', '23.00', '27.40', '28.70', '27.50', '29.30', '28.50', '27.20', '28.60', '28.70', '25.90', '23.40', '22.40', '21.40', '19.80', '19.50', '20.00'] }
+		let (:week_avg) { '20.07' }
+		let (:week_start) { '1395463478000' }
+		let (:week_dates) { %q['2014-03-22T04:43:00+00:00', '2014-03-23T04:43:00+00:00', '2014-03-24T04:43:00+00:00', '2014-03-25T04:43:00+00:00', '2014-03-26T04:43:00+00:00', '2014-03-27T04:43:00+00:00', '2014-03-28T04:43:00+00:00'] }
+		let (:week_values) { %q['23.10', '22.10', '22.20', '22.30', '22.10', '18.70', '17.00'] }
+		let (:month_avg) { '10.63' }
+		let (:month_start) { '1393476280000' }
+		let (:month_dates) { %q['2014-02-28T04:43:00+00:00', '2014-03-01T04:43:00+00:00', '2014-03-02T04:43:00+00:00', '2014-03-03T04:43:00+00:00', '2014-03-04T04:43:00+00:00', '2014-03-05T04:43:00+00:00', '2014-03-06T04:43:00+00:00', '2014-03-07T04:43:00+00:00', '2014-03-08T04:43:00+00:00', '2014-03-09T04:43:00+00:00', '2014-03-10T04:43:00+00:00', '2014-03-11T04:43:00+00:00', '2014-03-12T04:43:00+00:00', '2014-03-13T04:43:00+00:00', '2014-03-14T04:43:00+00:00', '2014-03-15T04:43:00+00:00', '2014-03-16T04:43:00+00:00', '2014-03-17T04:43:00+00:00', '2014-03-18T04:43:00+00:00', '2014-03-19T04:43:00+00:00', '2014-03-20T04:43:00+00:00', '2014-03-21T04:43:00+00:00', '2014-03-22T04:43:00+00:00', '2014-03-23T04:43:00+00:00', '2014-03-24T04:43:00+00:00', '2014-03-25T04:43:00+00:00', '2014-03-26T04:43:00+00:00', '2014-03-27T04:43:00+00:00', '2014-03-28T04:43:00+00:00'] }
+		let (:month_values) { %q['0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '18.50', '18.60', '18.40', '16.60', '16.80', '17.90', '19.90', '21.30', '22.80', '20.00', '17.30', '19.10', '21.50', '22.40', '22.50', '22.00', '21.80'] }
+
+
+		describe '#metric_update' do
+			let (:metric_update_response) {
+				statusioclient.metric_update statuspage_id,
+				                             metric_id,
+				                             day_avg,
+				                             day_start,
+				                             day_dates,
+				                             day_values,
+				                             week_avg,
+				                             week_start,
+				                             week_dates,
+				                             week_values,
+				                             month_avg,
+				                             month_start,
+				                             month_dates,
+				                             month_values
+			}
+
+			it 'should return successfully' do
+				metric_update_response['status']['error'].should eq 'no'
+				metric_update_response['status']['message'].should eq 'Updated metric successfully'
+				metric_update_response['result'].should eq true
+			end
+
+		end
+	end
 end
