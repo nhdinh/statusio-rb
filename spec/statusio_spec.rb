@@ -59,22 +59,21 @@ describe StatusioClient do
 
 		# Test component_status_update
 		describe '#component_status_update' do
-			before :each do
-				@components = [mock_components[0]]
-				@containers = [@components[0]['containers'][0]]
-				@details = '#Test updating component'
-				@current_status = StatusioClient::STATUS_OPERATIONAL
-			end
+			let (:components) { [mock_components[0]] }
+			let (:containers) { [components[0]['containers'][0]] }
+			let (:component_status_update_response) {
+				statusioclient.component_status_update statuspage_id,
+				                                       [components[0]['_id']],
+				                                       [containers[0]['_id']],
+				                                       '#Test updating component',
+				                                       StatusioClient::STATUS_OPERATIONAL
+			}
 
 			it 'should update single component and return with "result" equal true with the message' do
-				update_response = statusioclient.component_status_update statuspage_id,
-				                                                         [@components[0]['_id']],
-				                                                         [@containers[0]['_id']],
-				                                                         @details,
-				                                                         @current_status
-				update_response['status']['error'].should eq 'no'
-				update_response['status']['message'].should eq 'OK'
-				update_response['result'].should eq true
+
+				component_status_update_response['status']['error'].should eq 'no'
+				component_status_update_response['status']['message'].should eq 'OK'
+				component_status_update_response['result'].should eq true
 
 				# TODO: Fix server-side: The result always return true even if @component_id and @container_id are wrong
 			end
@@ -645,12 +644,27 @@ describe StatusioClient do
 			end
 		end
 
-		describe '#subscriber_' do
+		# Test subscriber_update
+		describe '#subscriber_subscriber_update' do
+			let (:subscriber_id) {
+				subscriber_add_response = statusioclient.subscriber_add statuspage_id,
+				                                                        payload['method'],
+				                                                        payload['address'],
+				                                                        0,
+				                                                        payload['granular']
+				return subscriber_add_response['subscriber_id']
+			}
 			#let (:subscriber_update_with_same_email_response) {statusioclient.subscriber_update statuspage_id, subscriber_id, email, payload['granular']}
 			let (:subscriber_update_response) { statusioclient.subscriber_update statuspage_id, subscriber_id, another_email, payload['granular'] }
 
 			it 'should return successful' do
 				subscriber_update_response['status']['error'].should eq 'no'
+				subscriber_update_response['status']['message'].should eq 'Successfully updated subscriber'
+				subscriber_update_response['result']['_id'].should eq subscriber_id
+			end
+
+			after do
+				statusioclient.subscriber_remove statuspage_id, subscriber_id
 			end
 		end
 
