@@ -756,7 +756,6 @@ describe StatusioClient do
 				metric_update_response['status']['message'].should eq 'Updated metric successfully'
 				metric_update_response['result'].should eq true
 			end
-
 		end
 	end
 end
